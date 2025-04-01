@@ -1166,14 +1166,15 @@ function gameOver() {
         const clickY = e.clientY - rect.top;
 
         // Check if click is on the EXIT portal
-        if (exitPortal && distance({ x: clickX, y: clickY }, exitPortal) < exitPortal.radius) {
-            window.location.href = 'index.html?portal=true';
-        }
+// Check if click is on the EXIT portal
+if (exitPortal && distance({ x: clickX, y: clickY }, exitPortal) < exitPortal.radius) {
+    window.location.href = 'index.html?portal=true';
+}
 
-        // Check if click is on the ENTER portal
-        if (enterPortal && distance({ x: clickX, y: clickY }, enterPortal) < enterPortal.radius) {
-            window.location.href = 'index.html?portal=true';
-        }
+// Check if click is on the ENTER portal
+if (enterPortal && distance({ x: clickX, y: clickY }, enterPortal) < enterPortal.radius) {
+    window.location.href = 'index.html?portal=true';
+}
     });
 
     // Play game over sound if not muted
