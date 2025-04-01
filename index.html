@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Shooter V2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.9.0/dist/nipplejs.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #111;
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #gameCanvas {
+            background: #000;
+            border: 2px solid #3b82f6;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            border-radius: 16px;
+            touch-action: none;
+            width: 100%;
+            height: auto;
+            max-width: 800px;
+            max-height: 600px;
+        }
+
+        #scoreDisplay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #fff;
+            font-size: 16px;
+            z-index: 10;
+        }
+
+        #healthDisplay {
+            position: absolute;
+            top: 35px;  /* Positioned directly below the score */
+            left: 10px; /* Same left alignment as score */
+            color: #fff;
+            font-size: 16px;
+            font-family: 'Press Start 2P', cursive; /* Match the score font */
+            z-index: 10;
+        }
+
+        #highScoreDisplay {
+            position: absolute;
+            top: 10px;
+            right: 60px;
+            color: #fff;
+            font-size: 16px;
+            z-index: 10;
+        }
+
+        .game-ui {
+            margin: 5px 0;
+        }
+
+        #startButton, #muteButton {
+            position: absolute;
+            top: 10px;
+            padding: 8px 16px;
+            background-color: #3b82f6;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 10;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        #startButton {
+            left: 50%;
+            transform: translateX(-50%);
+            /* Increase button size */
+            padding: 14px 26px;
+            font-size: 20px;
+        }
+
+        #muteButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 16px;
+            background-color: #3b82f6;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 10;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        #startButton:hover, #muteButton:hover {
+            background-color: #2563eb;
+            transform: scale(1.05);
+        }
+
+        #messageDisplay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 24px;
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .active-powerup {
+            border: 2px solid;
+            border-radius: 5px;
+            padding: 5px;
+            margin-right: 5px;
+            font-size: 10px;
+        }
+
+        .speed-boost {
+            border-color: yellow;
+            color: yellow;
+        }
+
+        .rapid-fire {
+            border-color: red;
+            color: red;
+        }
+
+        .shield {
+            border-color: blue;
+            color: blue;
+        }
+
+        .blast {
+            border-color: purple;
+            color: purple;
+        }
+
+        #powerupDisplay {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: #fff;
+            font-size: 12px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+        }
+
+        #mobile-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .joystick {
+            width: 120px;
+            height: 120px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: auto;
+            position: absolute;
+        }
+
+        #left-joystick {
+            background-color: rgba(255, 255, 255, 0.2);
+            bottom: 20px;
+            left: 20px;
+        }
+
+        #right-joystick {
+            background-color: rgba(255, 0, 0, 0.2);
+            bottom: 20px;
+            right: 20px;
+        }
+
+        @media (min-width: 769px) {
+            .mobile-only {
+                display: none !important;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-only {
+                display: none !important;
+            }
+        }
+
+        /* Replace starting from line 210 */
+                /* Update these CSS rules for better mobile UI positioning */
+                @media (max-width: 768px) {
+            .desktop-only {
+                display: none !important;
+            }
+            
+            #gameCanvas {
+                touch-action: none;
+                border-radius: 8px;
+                width: 100%;
+                height: auto;
+                display: block;
+                margin: 0 auto;
+            }
+            
+            #game-container {
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                height: calc(100vh - 150px);
+            }
+            
+            #mobile-controls {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 150px;
+                display: flex;
+                justify-content: space-between;
+                padding: 10px;
+                z-index: 10;
+                pointer-events: none;
+            }
+            
+            .joystick {
+                width: 120px;
+                height: 120px;
+                background-color: rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                pointer-events: auto;
+                position: absolute;
+            }
+            
+            #left-joystick {
+                background-color: rgba(255, 255, 255, 0.2);
+                bottom: 20px;
+                left: 20px;
+            }
+            
+            #right-joystick {
+                background-color: rgba(255, 0, 0, 0.2);
+                bottom: 20px;
+                right: 20px;
+            }
+            
+            /* Improved UI positioning for mobile */
+            #scoreDisplay {
+                top: 15px;
+                left: 15px;
+                font-size: 14px;
+            }
+            
+            #healthDisplay {
+                top: 40px;
+                left: 15px;
+                font-size: 14px;
+            }
+            
+            #highScoreDisplay {
+                top: 15px;
+                right: 70px;
+                font-size: 14px;
+            }
+            
+            #startButton {
+                top: 15px;
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+            
+            #muteButton {
+                top: 15px;
+                right: 15px;
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+            
+            #powerupDisplay {
+                bottom: 160px;
+                left: 15px;
+                font-size: 11px;
+            }
+            
+            /* Force portrait mode */
+            @media (orientation: landscape) {
+                body::before {
+                    content: "Please rotate your device to portrait mode";
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.9);
+                    color: white;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 9999;
+                    font-family: 'Press Start 2P', cursive;
+                    text-align: center;
+                    padding: 20px;
+                    font-size: 16px;
+                }
+                
+                #game-container, #mobile-controls {
+                    display: none;
+                }
+            }
+        }
+
+        /* Remove landscape mode adjustments */
+        @media (max-width: 768px) and (orientation: landscape) {
+            /* This section will be replaced by the forced portrait message above */
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="scoreDisplay">Score: 0</div>
+        <div id="healthDisplay">Health: 100</div>
+        <div id="highScoreDisplay">High Score: 0</div>
+        <button id="startButton">Start</button>
+        <button id="muteButton">
+            <span id="muteIcon">🔇</span>
+        </button>
+        <div id="messageDisplay"></div>
+        <div id="powerupDisplay">Active Power-ups: </div>
+        <div id="mobile-controls" class="mobile-only">
+            <div id="left-joystick" class="joystick"></div>
+            <div id="right-joystick" class="joystick"></div>
+        </div>
+    </div>
+
+    <script>
+        // Game Constants
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 600;
+        const PLAYER_SPEED = 4;
+        const BULLET_SPEED = 8;
+        const ZOMBIE_SPEED = 1.5;
+        const POWERUP_DURATION = 5000;
+        const POWERUP_SPAWN_INTERVAL = 5000;
+        const ZOMBIE_SPAWN_INTERVAL = 1500;
+        const RAPID_FIRE_INTERVAL = 100;
+        const BLAST_RADIUS = 1000;
+        const BULLETS_PER_SHOT = 2;
+        const BULLET_SPREAD = 0.25;
+        const MAX_ACTIVE_POWERUPS = 2;
+        const MAX_PLAYER_HEALTH = 100;
+        const PORTAL_RADIUS = 40;
+        const START_PORTAL_COLOR = '#ff0000';
+        const EXIT_PORTAL_COLOR = '#00ff00';
+        const PORTAL_PARTICLE_COUNT = 30;
+        // Zombie damage by type
+        const ZOMBIE_DAMAGE = {
+            normal: 15,
+            fast: 25,
+            tank: 30,
+            boss: 40
+        };
+        // Power-up Types Configuration
+        const POWERUP_TYPES = {
+            SPEED: { type: 'SPEED', color: 'yellow', duration: 5000, rarity: 0.15 },
+            RAPID_FIRE: { type: 'RAPID_FIRE', color: 'red', duration: 5000, rarity: 0.15 },
+            SHIELD: { type: 'SHIELD', color: 'blue', duration: 5000, rarity: 0.10 },
+            EXPLOSIVE: { type: 'EXPLOSIVE', color: 'orange', duration: 5000, rarity: 0.05 },
+            ENERGY_BLAST: { type: 'ENERGY_BLAST', color: 'green', duration: 5000, charges: 3, rarity: 0 },//rarity: 0.15 },
+            DOUBLE_DAMAGE: { type: 'DOUBLE_DAMAGE', color: 'purple', duration: 10000, charges: 4, rarity: 0.15 },
+            HEALTH_REGEN: { type: 'HEALTH_REGEN', color: 'cyan', duration: 7000, charges: 1, rarity: 0.10 },
+            TITAN_MODE: { type: 'TITAN_MODE', color: 'gold', duration: 8000, rarity: 0.05 },
+            GHOST_MODE: { type: 'GHOST_MODE', color: 'silver', duration: 5000, rarity: 0.10 },
+            FREEZE_ZONE: { type: 'FREEZE_ZONE', color: 'lightblue', duration: 5000, rarity: 0.15 }
+        };
+
+        // Game Variables
+        let canvas, ctx;
+        let player;
+        let zombies = [];
+        let bullets = [];
+        let powerups = [];
+        let score = 0;
+        let highScore = localStorage.getItem('highScore') || 0;
+        let gameRunning = false;
+        let muted = false;
+        let activePowerups = [];
+        let lastPowerupSpawn = 0;
+        let lastZombieSpawn = 0;
+        let lastShotTime = 0;
+        let powerupSpawnTime = 0;
+        let keys = {};
+        let leftJoystick, rightJoystick;
+        //let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.matchMedia("(max-width: 768px)").matches;
+        let touchStartX, touchStartY;
+
+        // Sound Effects
+        const sounds = {
+            shooter: new Tone.Synth({
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.5 }
+            }).toDestination(),
+
+            zombieHit: new Tone.Synth({
+                oscillator: { type: 'square' },
+                envelope: { attack: 0.001, decay: 0.1, sustain: 0.01, release: 0.1 }
+            }).toDestination(),
+
+            playerHit: new Tone.Synth({
+                oscillator: { type: 'sawtooth' },
+                envelope: { attack: 0.001, decay: 0.1, sustain: 0.01, release: 0.1 }
+            }).toDestination(),
+
+            gameOver: new Tone.MembraneSynth({
+                pitchDecay: 0.05,
+                octaves: 10,
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4, attackCurve: 'exponential' }
+            }).toDestination(),
+
+            powerup: new Tone.Synth({
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.001, decay: 0.1, sustain: 0.01, release: 0.1 }
+            }).toDestination()
+        };
+
+        // Initialize game
+        function init() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+
+            // Set canvas dimensions
+            canvas.width = CANVAS_WIDTH;
+            canvas.height = CANVAS_HEIGHT;
+
+            // Initialize UI elements
+            document.getElementById('highScoreDisplay').textContent = `High Score: ${highScore}`;
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Setup mobile controls if needed
+            if (isMobile) {
+                setupMobileControls();
+                // Show mobile controls
+                document.getElementById('mobile-controls').style.display = 'flex';
+                
+                // Add resize listener for orientation changes
+                window.addEventListener('resize', handleResize);
+                window.addEventListener('orientationchange', handleResize);
+            } else {
+                // Hide mobile controls on desktop
+                document.getElementById('mobile-controls').style.display = 'none';
+            }
+            
+            // Show start screen
+            document.getElementById('startButton').textContent = 'Start';
+            document.getElementById('messageDisplay').textContent = 'Vibe Shooter';
+            document.getElementById('messageDisplay').style.display = 'block';
+            
+            // Initial resize to set correct dimensions
+            handleResize();
+        }
+
+        // Setup event listeners
+        // Setup event listeners
+        function setupEventListeners() {
+            // Keyboard controls
+            window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+            window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+            
+            // Mouse controls
+            canvas.addEventListener('click', handleShoot);
+            canvas.addEventListener('mousemove', handleAim);
+            
+            // Touch controls
+            canvas.addEventListener('touchstart', handleTouchStart);
+            canvas.addEventListener('touchmove', handleTouchMove);
+            canvas.addEventListener('touchend', handleTouchEnd);
+            
+            // UI controls
+            document.getElementById('startButton').addEventListener('click', startGame);
+            document.getElementById('muteButton').addEventListener('click', toggleMute);
+        }
+
+        // Mobile controls setup
+        function setupMobileControls() {
+            const leftZone = document.getElementById('left-joystick');
+            const rightZone = document.getElementById('right-joystick');
+            
+            // Fixed joystick size for portrait mode
+            const joystickSize = 80;
+            
+            // Left joystick (movement - white)
+            leftJoystick = nipplejs.create({
+                zone: leftZone,
+                mode: 'static',
+                position: { left: '50%', top: '50%' },
+                color: 'white',
+                size: joystickSize,
+                lockX: false,
+                lockY: false,
+                dynamicPage: true
+            });
+            
+            // Right joystick (shooting - red)
+            rightJoystick = nipplejs.create({
+                zone: rightZone,
+                mode: 'static',
+                position: { left: '50%', top: '50%' },
+                color: 'red',
+                size: joystickSize,
+                lockX: false,
+                lockY: false,
+                dynamicPage: true
+            });
+            
+            // Movement joystick events
+            leftJoystick.on('move', handleMovementJoystick);
+            leftJoystick.on('end', handleJoystickEnd);
+            
+            // Shooting joystick events
+            rightJoystick.on('move', handleShootingJoystick);
+            rightJoystick.on('end', handleJoystickEnd);
+        }
+        
+        // Add this function after setupMobileControls
+        // Add this function after setupMobileControls
+        function handleResize() {
+            if (isMobile) {
+                // Destroy existing joysticks
+                if (leftJoystick) leftJoystick.destroy();
+                if (rightJoystick) rightJoystick.destroy();
+                
+                // Recreate joysticks with appropriate sizes
+                setupMobileControls();
+                
+                // Adjust canvas size - portrait mode only
+                const gameContainer = document.getElementById('game-container');
+                const canvas = document.getElementById('gameCanvas');
+                
+                // Portrait mode
+                gameContainer.style.height = 'calc(100vh - 150px)';
+                document.getElementById('mobile-controls').style.height = '150px';
+                
+                // Adjust joystick sizes for portrait
+                document.querySelectorAll('.joystick').forEach(joystick => {
+                    joystick.style.width = '120px';
+                    joystick.style.height = '120px';
+                });
+                
+                // Calculate the scale to fit the canvas in the container
+                const containerWidth = window.innerWidth;
+                const containerHeight = window.innerHeight - 150;
+                
+                // Set canvas size to maintain aspect ratio
+                const aspectRatio = CANVAS_WIDTH / CANVAS_HEIGHT;
+                let canvasWidth, canvasHeight;
+                
+                if (containerWidth / containerHeight > aspectRatio) {
+                    // Container is wider than needed
+                    canvasHeight = containerHeight;
+                    canvasWidth = canvasHeight * aspectRatio;
+                } else {
+                    // Container is taller than needed
+                    canvasWidth = containerWidth;
+                    canvasHeight = canvasWidth / aspectRatio;
+                }
+                
+                canvas.style.width = `${canvasWidth}px`;
+                canvas.style.height = `${canvasHeight}px`;
+                
+                // Center the canvas in the container
+                canvas.style.margin = 'auto';
+            }
+        }
+
+        // Game object classes
+        class Player {
+            constructor() {
+                this.x = CANVAS_WIDTH / 2;
+                this.y = CANVAS_HEIGHT / 2;
+                this.radius = 15;
+                this.color = '#3b82f6';
+                this.speed = PLAYER_SPEED;
+                this.angle = 0;
+                this.health = MAX_PLAYER_HEALTH;
+                this.weaponDamage = 10;
+                this.isGhost = false;
+                this.invulnerable = false; // Add invulnerability after taking damage
+                this.lastHitTime = 0;
+            }
+            
+            update() {
+                // Handle movement
+                if (keys['w'] || keys['arrowup']) this.y -= this.speed;
+                if (keys['s'] || keys['arrowdown']) this.y += this.speed;
+                if (keys['a'] || keys['arrowleft']) this.x -= this.speed;
+                if (keys['d'] || keys['arrowright']) this.x += this.speed;
+                
+                // Keep player in bounds
+                this.x = Math.max(this.radius, Math.min(CANVAS_WIDTH - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(CANVAS_HEIGHT - this.radius, this.y));
+            }
+            
+            draw() {
+                // Create a subtle gradient for depth (optional, but can add elegance)
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.radius
+                );
+                gradient.addColorStop(0, '#8ab4f8'); // A slightly lighter shade of blue
+                gradient.addColorStop(1, '#3b82f6'); // Your original blue
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = gradient; // Use the gradient fill
+                ctx.fill();
+
+                // Direction Indicator: A solid white line
+                const indicatorLength = this.radius + 5;
+                const indicatorWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(
+                    this.x + Math.cos(this.angle) * indicatorLength,
+                    this.y + Math.sin(this.angle) * indicatorLength
+                );
+                ctx.strokeStyle = 'white'; // Keep it white for visibility
+                ctx.lineWidth = indicatorWidth;
+                ctx.stroke();
+                
+                // Draw health bar above player
+                const healthBarWidth = this.radius * 2;
+                const healthBarHeight = 4;
+                const healthPercentage = this.health / MAX_PLAYER_HEALTH;
+                
+                // Background (red)
+                ctx.fillStyle = 'red';
+                ctx.fillRect(this.x - healthBarWidth/2, this.y - this.radius - 10, healthBarWidth, healthBarHeight);
+                
+                // Foreground (green)
+                ctx.fillStyle = 'green';
+                ctx.fillRect(this.x - healthBarWidth/2, this.y - this.radius - 10, healthBarWidth * healthPercentage, healthBarHeight);
+            }
+        }
+
+        class Zombie {
+            constructor(type = 'normal') {
+                const side = Math.floor(Math.random() * 4);
+                this.type = type;
+                
+                // Set spawn position
+                switch(side) {
+                    case 0: // top
+                        this.x = Math.random() * CANVAS_WIDTH;
+                        this.y = -20;
+                        break;
+                    case 1: // right
+                        this.x = CANVAS_WIDTH + 20;
+                        this.y = Math.random() * CANVAS_HEIGHT;
+                        break;
+                    case 2: // bottom
+                        this.x = Math.random() * CANVAS_WIDTH;
+                        this.y = CANVAS_HEIGHT + 20;
+                        break;
+                    case 3: // left
+                        this.x = -20;
+                        this.y = Math.random() * CANVAS_HEIGHT;
+                        break;
+                }
+                
+                // Set zombie properties based on type
+                switch(type) {
+                    case 'fast':
+                        this.radius = 12;
+                        this.speed = ZOMBIE_SPEED * 1.5;
+                        this.health = 1;
+                        this.color = '#e74c3c';
+                        this.points = 15;
+                        break;
+                    case 'tank':
+                        this.radius = 25;
+                        this.speed = ZOMBIE_SPEED * 0.7;
+                        this.health = 3;
+                        this.color = '#8b4513';
+                        this.points = 25;
+                        break;
+                    case 'boss':
+                        this.radius = 35;
+                        this.speed = ZOMBIE_SPEED * 0.5;
+                        this.health = 5;
+                        this.color = '#800000';
+                        this.points = 50;
+                        break;
+                    default: // normal
+                        this.radius = 15;
+                        this.speed = ZOMBIE_SPEED;
+                        this.health = 1;
+                        this.color = '#27ae60';
+                        this.points = 10;
+                }
+            }
+            
+            update() {
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                this.x += (dx / distance) * this.speed;
+                this.y += (dy / distance) * this.speed;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                if (this.type === 'boss') {
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+                
+                // Draw health bar for zombies with more than 1 health
+                if (this.health > 1) {
+                    const healthBarWidth = this.radius * 2;
+                    const healthBarHeight = 5;
+                    const healthPercentage = this.health / (this.type === 'boss' ? 5 : 2);
+                    
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(this.x - healthBarWidth/2, this.y - this.radius - 10, healthBarWidth, healthBarHeight);
+                    
+                    ctx.fillStyle = 'green';
+                    ctx.fillRect(this.x - healthBarWidth/2, this.y - this.radius - 10, healthBarWidth * healthPercentage, healthBarHeight);
+                }
+            }
+        }
+
+        class Portal {
+    constructor(x, y, radius, color, isExit) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.isExit = isExit;
+        this.particles = [];
+        this.generateParticles();
+    }
+
+    generateParticles() {
+        for (let i = 0; i < PORTAL_PARTICLE_COUNT; i++) {
+            this.particles.push({
+                angle: Math.random() * Math.PI * 2,
+                distance: Math.random() * this.radius * 0.8,
+                speed: 0.02 + Math.random() * 0.03,
+                size: 1 + Math.random() * 3
+            });
+        }
+    }
+
+    update() {
+        // Update particle positions
+        this.particles.forEach(p => {
+            p.angle += p.speed;
+        });
+    }
+
+    draw() {
+        // Draw portal circle
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+
+        // Draw particles
+        ctx.save();
+        this.particles.forEach(p => {
+            const px = this.x + Math.cos(p.angle) * p.distance;
+            const py = this.y + Math.sin(p.angle) * p.distance;
+            
+            ctx.beginPath();
+            ctx.arc(px, py, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+        });
+        ctx.restore();
+
+        // Draw portal label
+        ctx.fillStyle = 'white';
+        ctx.font = '16px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.isExit ? 'EXIT' : 'ENTER', this.x, this.y + 5);
+    }
+}
+
+        class Bullet {
+            constructor(x, y, angle, damage) {
+                this.x = x;
+                this.y = y;
+                this.radius = 5;
+                this.color = 'crimson';
+                this.speed = BULLET_SPEED;
+                this.angle = angle;
+                this.damage = damage;
+            }
+            
+            update() {
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+
+        class PowerUp {
+            constructor(type) {
+                this.x = Math.random() * (CANVAS_WIDTH - 40) + 20;
+                this.y = Math.random() * (CANVAS_HEIGHT - 40) + 20;
+                this.radius = 15;
+                this.type = type;
+                this.spawnTime = Date.now();
+                this.duration = POWERUP_TYPES[type].duration || POWERUP_DURATION;
+                this.color = POWERUP_TYPES[type].color;
+                this.charges = POWERUP_TYPES[type].charges || 1;
+                this.currentCharges = this.charges;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Display charges if more than 1
+                if (this.charges > 1) {
+                    ctx.fillStyle = 'white';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${this.currentCharges}/${this.charges}`, this.x, this.y + 4);
+                }
+                
+                // Glow effect
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            isExpired() {
+                return Date.now() - this.spawnTime > this.duration;
+            }
+        }
+
+        // Game functions
+        function startGame() {
+            // Reset game state
+            zombies = [];
+            bullets = [];
+            powerups = [];
+            score = 0;
+            document.getElementById('scoreDisplay').textContent = `Score: ${score}`;
+            activePowerups = [];
+            lastPowerupSpawn = 0;
+            lastZombieSpawn = 0;
+            lastShotTime = 0;
+            powerupSpawnTime = 0;
+            
+            // Create player
+            player = new Player();
+            updateHealthDisplay(); // Add this line
+            
+            // Hide start screen
+            document.getElementById('messageDisplay').style.display = 'none';
+            
+            // Start game loop
+            gameRunning = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameLoop(timestamp) {
+            if (!gameRunning) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
+            // Update game objects
+            player.update();
+            
+            // Handle invulnerability
+            if (player.invulnerable) {
+                // Make player flash when invulnerable
+                if (Math.floor(Date.now() / 100) % 2 === 0) {
+                    player.color = 'rgba(59, 130, 246, 0.5)';
+                } else {
+                    player.color = '#3b82f6';
+                }
+                
+                // End invulnerability after 300ms (reduced from 1000ms)
+                if (Date.now() - player.lastHitTime > 300) {
+                    player.invulnerable = false;
+                    player.color = '#3b82f6';
+                }
+            }
+            
+            // Spawn zombies with increasing difficulty
+            if (timestamp - lastZombieSpawn > ZOMBIE_SPAWN_INTERVAL) {
+                let type = 'normal';
+                const rand = Math.random();
+                
+                // Increase difficulty based on score
+                const difficultyFactor = Math.min(0.5, score / 1000); // Max 50% increase in difficulty
+                
+                if (rand < (0.1 + difficultyFactor * 0.1)) type = 'boss';
+                else if (rand < (0.3 + difficultyFactor * 0.1)) type = 'tank';
+                else if (rand < (0.5 + difficultyFactor * 0.1)) type = 'fast';
+                
+                zombies.push(new Zombie(type));
+                lastZombieSpawn = timestamp;
+                
+                // Decrease spawn interval as score increases (up to 50% faster)
+                const currentSpawnInterval = ZOMBIE_SPAWN_INTERVAL * (1 - difficultyFactor * 0.5);
+                lastZombieSpawn = timestamp - (ZOMBIE_SPAWN_INTERVAL - currentSpawnInterval);
+            }
+            
+            // Spawn power-ups with better timing
+            if (timestamp - powerupSpawnTime > POWERUP_SPAWN_INTERVAL) {
+                const types = Object.values(POWERUP_TYPES);
+                const type = types[Math.floor(Math.random() * types.length)].type;
+                powerups.push(new PowerUp(type));
+                powerupSpawnTime = timestamp;
+            }
+            
+            // Update and draw zombies
+            for (let i = zombies.length - 1; i >= 0; i--) {
+                const zombie = zombies[i];
+                zombie.update();
+                zombie.draw();
+                
+                // Check collision with player
+                if (!player.isGhost && !player.invulnerable && distance(player, zombie) < player.radius + zombie.radius) {
+                    if (!activePowerups.includes('SHIELD')) {
+                        // Apply damage based on zombie type
+                        const damage = ZOMBIE_DAMAGE[zombie.type] || ZOMBIE_DAMAGE.normal;
+                        player.health -= damage;
+                        updateHealthDisplay();
+                        
+                        // Add brief invulnerability after being hit
+                        player.invulnerable = true;
+                        player.lastHitTime = Date.now();
+                        
+                        // Visual feedback for damage
+                        canvas.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+                        setTimeout(() => {
+                            canvas.style.backgroundColor = '';
+                        }, 100);
+                        
+                        // Check if player is dead
+                        if (player.health <= 0) {
+                            gameOver();
+                            return;
+                        }
+                        
+                        // Remove the zombie that hit you
+                        playSound('playerHit');
+                    } else {
+                        // Shield destroys the zombie without damage
+                        zombies.splice(i, 1);
+                        score += zombie.points;
+                        updateScore();
+                        playSound('playerHit');
+                    }
+                }
+            }
+            
+            // Update and draw bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                bullet.update();
+                bullet.draw();
+                
+                // Check collision with zombies
+                for (let j = zombies.length - 1; j >= 0; j--) {
+                    const zombie = zombies[j];
+                    if (distance(bullet, zombie) < bullet.radius + zombie.radius) {
+                        bullets.splice(i, 1);
+                        zombie.health--;
+                        playSound('zombieHit');
+                        
+                        if (zombie.health <= 0) {
+                            zombies.splice(j, 1);
+                            score += zombie.points;
+                            updateScore();
+                        }
+                        break;
+                    }
+                }
+                
+                // Remove bullets that go off screen
+                if (bullet.x < 0 || bullet.x > CANVAS_WIDTH || bullet.y < 0 || bullet.y > CANVAS_HEIGHT) {
+                    bullets.splice(i, 1);
+                }
+            }
+            
+            // Update and draw powerups
+            for (let i = powerups.length - 1; i >= 0; i--) {
+                const powerup = powerups[i];
+                powerup.draw();
+                
+                // Check collision with player
+                if (distance(player, powerup) < player.radius + powerup.radius) {
+                    applyPowerup(powerup.type);
+                    powerups.splice(i, 1);
+                    playSound('powerup');
+                }
+            }
+            
+            // Draw player
+            player.draw();
+            
+            // Request next frame
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
+            // Draw game elements
+            if (gameRunning) {
+                player.draw();
+                bullets.forEach(bullet => bullet.draw());
+                zombies.forEach(zombie => zombie.draw());
+                powerups.forEach(powerup => powerup.draw());
+            } else {
+                // Only show portal when game is not running (game over screen)
+                if (exitPortal) {
+                    exitPortal.update();
+                    exitPortal.draw();
+                }
+            }
+            
+            // Draw UI elements
+            drawUI();
+        }
+        
+        // Helper functions
+        function distance(obj1, obj2) {
+            const dx = obj1.x - obj2.x;
+            const dy = obj1.y - obj2.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        
+        function updateScore() {
+            document.getElementById('scoreDisplay').textContent = `Score: ${score}`;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+                document.getElementById('highScoreDisplay').textContent = `High Score: ${highScore}`;
+            }
+        }
+        
+        function updateHealthDisplay() {
+            document.getElementById('healthDisplay').textContent = `Health: ${Math.max(0, player.health)}`;
+        }
+
+    
+
+function gameOver() {
+    gameRunning = false;
+    let messageDisplay = document.getElementById('messageDisplay');
+
+    messageDisplay.innerHTML = 'GAME OVER<br><span style="font-size: 20px; color: blue;">PRESS START</span>';
+    messageDisplay.style.display = 'block';
+
+    setTimeout(() => {
+        messageDisplay.innerHTML += '<br><span style="font-size: 14px; opacity: 0.8;">Wait 5 secs & Tap Center to enter VIBEVERSE</span>';
+    }, 5000);
+
+
+
+
+    // Create exit portal on game over
+    exitPortal = new Portal(CANVAS_WIDTH - 100, CANVAS_HEIGHT - 100, PORTAL_RADIUS, EXIT_PORTAL_COLOR, true);
+    
+    // Add click handler to restart game through portal
+    document.getElementById('messageDisplay').addEventListener('click', () => {
+        window.location.href = 'vibeportal.html?portal=true';
+    });
+    
+    // Play game over sound
+    if (!muted) {
+        sounds.gameOver.triggerAttackRelease("C1", "8n");
+    }
+}
+
+// ... existing code ...
+        
+        function applyPowerup(type) {
+            // Remove oldest powerup if at max
+            if (activePowerups.length >= MAX_ACTIVE_POWERUPS) {
+                activePowerups.shift();
+            }
+            
+            // Add new powerup
+            activePowerups.push(type);
+            
+            // Apply powerup effect
+            switch(type) {
+                case 'SPEED':
+                    player.speed = PLAYER_SPEED * 1.5;
+                    setTimeout(() => {
+                        player.speed = PLAYER_SPEED;
+                        activePowerups = activePowerups.filter(p => p !== 'SPEED');
+                        updatePowerupDisplay();
+                    }, POWERUP_DURATION);
+                    break;
+                case 'RAPID_FIRE':
+                    // Effect handled in shoot function
+                    setTimeout(() => {
+                        activePowerups = activePowerups.filter(p => p !== 'RAPID_FIRE');
+                        updatePowerupDisplay();
+                    }, POWERUP_DURATION);
+                    break;
+                case 'SHIELD':
+                    // Effect handled in collision detection
+                    setTimeout(() => {
+                        activePowerups = activePowerups.filter(p => p !== 'SHIELD');
+                        updatePowerupDisplay();
+                    }, POWERUP_DURATION);
+                    break;
+                case 'EXPLOSIVE':
+                    // Explode all zombies on screen
+                    for (let i = zombies.length - 1; i >= 0; i--) {
+                        score += zombies[i].points;
+                    }
+                    zombies = [];
+                    updateScore();
+                    break;
+                case 'DOUBLE_DAMAGE':
+                    player.weaponDamage *= 2;
+                    setTimeout(() => {
+                        player.weaponDamage /= 2;
+                        activePowerups = activePowerups.filter(p => p !== 'DOUBLE_DAMAGE');
+                        updatePowerupDisplay();
+                    }, POWERUP_DURATION);
+                    break;
+                case 'HEALTH_REGEN':
+                    player.health = Math.min(MAX_PLAYER_HEALTH, player.health + 50);
+                    updateHealthDisplay();
+                    break;
+                case 'GHOST_MODE':
+                    player.isGhost = true;
+                    setTimeout(() => {
+                        player.isGhost = false;
+                        activePowerups = activePowerups.filter(p => p !== 'GHOST_MODE');
+                        updatePowerupDisplay();
+                    }, POWERUP_DURATION);
+                    break;
+                case 'FREEZE_ZONE':
+                    // Freeze all zombies temporarily
+                    zombies.forEach(zombie => {
+                        zombie.originalSpeed = zombie.speed;
+                        zombie.speed = 0;
+                    });
+                    setTimeout(() => {
+                        zombies.forEach(zombie => {
+                            if (zombie.originalSpeed) {
+                                zombie.speed = zombie.originalSpeed;
+                            }
+                        });
+                        activePowerups = activePowerups.filter(p => p !== 'FREEZE_ZONE');
+                        updatePowerupDisplay();
+                    }, POWERUP_DURATION);
+                    break;
+            }
+            
+            updatePowerupDisplay();
+        }
+        
+        function updatePowerupDisplay() {
+            const display = document.getElementById('powerupDisplay');
+            display.innerHTML = 'Active Power-ups: ';
+            
+            activePowerups.forEach(powerup => {
+                const span = document.createElement('span');
+                span.className = `active-powerup ${powerup.toLowerCase()}`;
+                span.textContent = powerup;
+                display.appendChild(span);
+            });
+        }
+        
+        function handleShoot(e) {
+            if (!gameRunning) return;
+            
+            // Calculate angle
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const dx = mouseX - player.x;
+            const dy = mouseY - player.y;
+            const angle = Math.atan2(dy, dx);
+            
+            shoot(angle);
+        }
+        
+        function shoot(angle) {
+            if (!gameRunning) return;
+            
+            const now = Date.now();
+            const fireInterval = activePowerups.includes('RAPID_FIRE') ? RAPID_FIRE_INTERVAL : 300;
+            
+            if (now - lastShotTime < fireInterval) return;
+            
+            lastShotTime = now;
+            
+            // Create bullet(s)
+            if (activePowerups.includes('DOUBLE_DAMAGE')) {
+                // Create multiple bullets with spread
+                for (let i = 0; i < BULLETS_PER_SHOT; i++) {
+                    const spreadAngle = angle + (Math.random() * BULLET_SPREAD * 2 - BULLET_SPREAD);
+                    bullets.push(new Bullet(player.x, player.y, spreadAngle, player.weaponDamage));
+                }
+            } else {
+                bullets.push(new Bullet(player.x, player.y, angle, player.weaponDamage));
+            }
+            
+            playSound('shooter');
+        }
+        
+        function handleAim(e) {
+            if (!gameRunning) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const dx = mouseX - player.x;
+            const dy = mouseY - player.y;
+            player.angle = Math.atan2(dy, dx);
+        }
+        
+        function handleTouchStart(e) {
+            if (!gameRunning) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            touchStartX = e.touches[0].clientX - rect.left;
+            touchStartY = e.touches[0].clientY - rect.top;
+        }
+        
+        function handleTouchMove(e) {
+            if (!gameRunning || !touchStartX) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const touchX = e.touches[0].clientX - rect.left;
+            const touchY = e.touches[0].clientY - rect.top;
+            
+            // Calculate angle for aiming
+            const dx = touchX - player.x;
+            const dy = touchY - player.y;
+            player.angle = Math.atan2(dy, dx);
+        }
+        
+        function handleTouchEnd(e) {
+            if (!gameRunning) return;
+            
+            // Shoot in the direction player is facing
+            shoot(player.angle);
+            touchStartX = null;
+            touchStartY = null;
+        }
+        
+        function handleMovementJoystick(evt, data) {
+    if (!gameRunning) return;
+    
+    const force = Math.min(1, data.force);
+    const angle = data.angle.radian;
+    
+    // Left joystick controls movement - FIXED DIRECTION MAPPING
+    // Use Math.cos for X movement and Math.sin for Y movement
+    // Negate the Y movement to match WASD/arrow key behavior
+    const moveX = Math.cos(angle) * player.speed * force;
+    const moveY = -Math.sin(angle) * player.speed * force; // Negate to fix direction
+    
+    player.x += moveX;
+    player.y += moveY;
+    
+    // Keep player in bounds
+    player.x = Math.max(player.radius, Math.min(CANVAS_WIDTH - player.radius, player.x));
+    player.y = Math.max(player.radius, Math.min(CANVAS_HEIGHT - player.radius, player.y));
+}
+
+function handleShootingJoystick(evt, data) {
+    if (!gameRunning) return;
+    
+    // Right joystick controls shooting direction
+    const angle = data.angle.radian;
+    
+    // Convert joystick angle to match expected behavior
+    // When joystick is pushed up (π/2), fire up (3π/2)
+    // When joystick is pushed right (0), fire right (0)
+    // When joystick is pushed down (3π/2), fire down (π/2)
+    // When joystick is pushed left (π), fire left (π)
+    
+    // Map the joystick angle to the correct firing direction
+    // This formula flips the Y-axis to match the expected behavior
+    const adjustedAngle = (Math.PI * 2 - angle) % (Math.PI * 2);
+    player.angle = adjustedAngle;
+    
+    // Auto-shoot when using joystick with a slight delay to prevent too many bullets
+    const now = Date.now();
+    const fireInterval = activePowerups.includes('RAPID_FIRE') ? RAPID_FIRE_INTERVAL : 300;
+    
+    if (now - lastShotTime >= fireInterval) {
+        shoot(adjustedAngle);
+        lastShotTime = now;
+    }
+}
+
+function handleJoystickEnd() {
+    // Reset movement when joystick is released
+    // No action needed as movement is applied per-frame
+}
+        
+        function toggleMute() {
+            muted = !muted;
+            
+            // Update mute button icon
+            document.getElementById('muteIcon').textContent = muted ? '🔇' : '🔊';
+            
+            // Set volume for all sounds
+            Object.values(sounds).forEach(sound => {
+                sound.volume.value = muted ? -Infinity : 0;
+            });
+        }
+        
+        function playSound(soundName) {
+            if (muted) return;
+            
+            switch(soundName) {
+                case 'shooter':
+                    sounds.shooter.triggerAttackRelease('C5', '8n');
+                    break;
+                case 'zombieHit':
+                    sounds.zombieHit.triggerAttackRelease('G3', '16n');
+                    break;
+                case 'playerHit':
+                    sounds.playerHit.triggerAttackRelease('E2', '8n');
+                    break;
+                case 'gameOver':
+                    sounds.gameOver.triggerAttackRelease('C2', '2n');
+                    break;
+                case 'powerup':
+                    sounds.powerup.triggerAttackRelease('A5', '16n');
+                    break;
+            }
+        }
+        
+        // Initialize the game when the page loads
+        window.addEventListener('load', init);
+    </script>
+    
+    <!-- Vibe Jam 2025 link -->
+    <a target="_blank" href="https://jam.pieter.com" style="font-family: 'system-ui', sans-serif; position: fixed; bottom: -1px; right: -1px; padding: 7px; font-size: 14px; font-weight: bold; background: #fff; color: #000; text-decoration: none; z-index: 10; border-top-left-radius: 12px; z-index: 10000; border: 1px solid #fff;">🕹️ Vibe Jam 2025</a>
+</body>
+</html>
