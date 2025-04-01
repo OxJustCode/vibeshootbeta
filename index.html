@@ -1110,33 +1110,78 @@
 
     
 
+// function gameOver() {
+//     gameRunning = false;
+//     let messageDisplay = document.getElementById('messageDisplay');
+
+//     messageDisplay.innerHTML = 'GAME OVER<br><span style="font-size: 20px; color: blue;">PRESS START</span>';
+//     messageDisplay.style.display = 'block';
+
+//     setTimeout(() => {
+//         messageDisplay.innerHTML += '<br><span style="font-size: 14px; opacity: 0.8;">Wait 5 secs & Tap Center to enter VIBEVERSE</span>';
+//     }, 5000);
+
 function gameOver() {
     gameRunning = false;
     let messageDisplay = document.getElementById('messageDisplay');
 
-    messageDisplay.innerHTML = 'GAME OVER<br><span style="font-size: 20px; color: blue;">PRESS START</span>';
+    // Update message display
+    messageDisplay.innerHTML = `GAME OVER<br>Score: ${score}<br><span style="font-size: 20px; color: blue;">PRESS START</span>`;
     messageDisplay.style.display = 'block';
 
+    // Create portals on game over
+    enterPortal = new Portal(
+        CANVAS_WIDTH - 100, 
+        CANVAS_HEIGHT - 100, 
+        PORTAL_RADIUS, 
+        START_PORTAL_COLOR, 
+        false
+    ); // Red ENTER portal on the right bottom
+
+    exitPortal = new Portal(
+        100, 
+        CANVAS_HEIGHT - 100, 
+        PORTAL_RADIUS, 
+        EXIT_PORTAL_COLOR, 
+        true
+    ); // Green EXIT portal on the left bottom
+
+    // Draw the portals immediately
+    draw();
+
+    // Delay additional message by 5 seconds
     setTimeout(() => {
         messageDisplay.innerHTML += '<br><span style="font-size: 14px; opacity: 0.8;">Wait 5 secs & Tap Center to enter VIBEVERSE</span>';
     }, 5000);
 
-
-
-
-    // Create exit portal on game over
-    exitPortal = new Portal(CANVAS_WIDTH - 100, CANVAS_HEIGHT - 100, PORTAL_RADIUS, EXIT_PORTAL_COLOR, true);
-    
-    // Add click handler to restart game through portal
-    document.getElementById('messageDisplay').addEventListener('click', () => {
+    // Add click handler for the message display to go to portal
+    messageDisplay.addEventListener('click', () => {
         window.location.href = 'vibeportal.html?portal=true';
     });
-    
-    // Play game over sound
+
+    // Add click handler to portals
+    canvas.addEventListener('click', function (e) {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+
+        // Check if click is on the EXIT portal
+        if (exitPortal && distance({ x: clickX, y: clickY }, exitPortal) < exitPortal.radius) {
+            window.location.href = 'index.html?portal=true';
+        }
+
+        // Check if click is on the ENTER portal
+        if (enterPortal && distance({ x: clickX, y: clickY }, enterPortal) < enterPortal.radius) {
+            window.location.href = 'index.html?portal=true';
+        }
+    });
+
+    // Play game over sound if not muted
     if (!muted) {
         sounds.gameOver.triggerAttackRelease("C1", "8n");
     }
 }
+
 
 // ... existing code ...
         
